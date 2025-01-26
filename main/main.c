@@ -1,46 +1,19 @@
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
-#include "lwip/tcp.h"
 #include <string.h>
 #include <stdio.h>
+#include "pico_http_client/pico_http_client.h"
+#include "config.h"
 
-#define LED_PIN 12         // Pino do LED
-#define BUTTON1_PIN 5      // Pino do botão 1
-#define BUTTON2_PIN 6      // Pino do botão 2
-#define WIFI_SSID "TP-Link_3577"  // Substitua pelo nome da sua rede Wi-Fi
-#define WIFI_PASS "44667498" // Substitua pela senha da sua rede Wi-Fi
+#define LED_PIN 12          // Define o pino do LED
 
-// Estado dos botões (inicialmente sem mensagens)
-char button1_message[50] = "Nenhum evento no botão 1";
-char button2_message[50] = "Nenhum evento no botão 2";
-
-// Buffer para resposta HTTP
-char http_response[1024];
-
-// Função para criar a resposta HTTP
-void create_http_response() {
-    snprintf(http_response, sizeof(http_response),
-             "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n"
-             "<!DOCTYPE html>"
-             "<html>"
-             "<head>"
-             "  <meta charset=\"UTF-8\">"
-             "  <title>Controle do LED e Botões</title>"
-             "</head>"
-             "<body>"
-             "  <h1>Controle do LED e Botões</h1>"
-             "  <p><a href=\"/led/on\">Ligar LED</a></p>"
-             "  <p><a href=\"/led/off\">Desligar LED</a></p>"
-             "  <p><a href=\"/update\">Atualizar Estado</a></p>"
-             "  <h2>Estado dos Botões:</h2>"
-             "  <p>Botão 1: %s</p>"
-             "  <p>Botão 2: %s</p>"
-             "</body>"
-             "</html>\r\n",
-             button1_message, button2_message);
-}
-
-
+// Buffer para respostas HTTP
+#define HTTP_RESPONSE "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" \
+                      "<!DOCTYPE html><html><body>" \
+                      "<h1>Controle do LED</h1>" \
+                      "<p><a href=\"/led/on\">Ligar LED</a></p>" \
+                      "<p><a href=\"/led/off\">Desligar LED</a></p>" \
+                      "</body></html>\r\n"
 
 
 // Função de callback para processar requisições HTTP
@@ -60,11 +33,8 @@ static err_t http_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_
         gpio_put(LED_PIN, 0);  // Desliga o LED
     }
 
-    // Atualiza o conteúdo da página com base no estado dos botões
-    create_http_response();
-
     // Envia a resposta HTTP
-    tcp_write(tpcb, http_response, strlen(http_response), TCP_WRITE_FLAG_COPY);
+    tcp_write(tpcb, HTTP_RESPONSE, strlen(HTTP_RESPONSE), TCP_WRITE_FLAG_COPY);
 
     // Libera o buffer recebido
     pbuf_free(p);
@@ -98,37 +68,6 @@ static void start_http_server(void) {
     printf("Servidor HTTP rodando na porta 80...\n");
 }
 
-// Função para monitorar o estado dos botões
-void monitor_buttons() {
-    static bool button1_last_state = false;
-    static bool button2_last_state = false;
-
-    bool button1_state = !gpio_get(BUTTON1_PIN); // Botão pressionado = LOW
-    bool button2_state = !gpio_get(BUTTON2_PIN);
-
-    if (button1_state != button1_last_state) {
-        button1_last_state = button1_state;
-        if (button1_state) {
-            snprintf(button1_message, sizeof(button1_message), "Botão 1 foi pressionado!");
-            printf("Botão 1 pressionado\n");
-        } else {
-            snprintf(button1_message, sizeof(button1_message), "Botão 1 foi solto!");
-            printf("Botão 1 solto\n");
-        }
-    }
-
-    if (button2_state != button2_last_state) {
-        button2_last_state = button2_state;
-        if (button2_state) {
-            snprintf(button2_message, sizeof(button2_message), "Botão 2 foi pressionado!");
-            printf("Botão 2 pressionado\n");
-        } else {
-            snprintf(button2_message, sizeof(button2_message), "Botão 2 foi solto!");
-            printf("Botão 2 solto\n");
-        }
-    }
-}
-
 int main() {
     stdio_init_all();  // Inicializa a saída padrão
     sleep_ms(10000);
@@ -154,29 +93,19 @@ int main() {
     }
 
     printf("Wi-Fi conectado!\n");
+    printf("Para ligar ou desligar o LED acesse o Endereço IP seguido de /led/on ou /led/off\n");
 
-    // Configura o LED e os botões
+    // Configura o LED como saída
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
-    gpio_init(BUTTON1_PIN);
-    gpio_set_dir(BUTTON1_PIN, GPIO_IN);
-    gpio_pull_up(BUTTON1_PIN);
-
-    gpio_init(BUTTON2_PIN);
-    gpio_set_dir(BUTTON2_PIN, GPIO_IN);
-    gpio_pull_up(BUTTON2_PIN);
-
-    printf("Botões configurados com pull-up nos pinos %d e %d\n", BUTTON1_PIN, BUTTON2_PIN);
-
     // Inicia o servidor HTTP
     start_http_server();
-
+    
     // Loop principal
     while (true) {
         cyw43_arch_poll();  // Necessário para manter o Wi-Fi ativo
-        monitor_buttons();  // Atualiza o estado dos botões
-        sleep_ms(100);      // Reduz o uso da CPU
+        sleep_ms(100);
     }
 
     cyw43_arch_deinit();  // Desliga o Wi-Fi (não será chamado, pois o loop é infinito)
