@@ -60,7 +60,7 @@ int add_header(http_client_t *http_client, const char *key, const char *value);
 
 void free_http_client(http_client_t *http_client);
 
-http_response_t http_request(enum HTTPMethod method, http_client_t *http_client);
+http_response_t http_request(int number, http_client_t *http_client);
 
 int handle_socket(http_client_t *http_client, url_t *url, void *data, int data_size);
 

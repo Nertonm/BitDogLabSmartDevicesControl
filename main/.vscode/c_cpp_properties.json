@@ -4,7 +4,8 @@
             "name": "Pico",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${userHome}/.pico-sdk/sdk/2.1.0/**"
+                "${userHome}/.pico-sdk/sdk/2.1.0/**",
+                "/home/nerton/.pico-sdk/sdk/2.1.0/src/rp2_common/pico_cyw43_arch/include"
             ],
             "forcedInclude": [
                 "${userHome}/.pico-sdk/sdk/2.1.0/src/common/pico_base_headers/include/pico.h",
