@@ -46,7 +46,9 @@
         "pico_http_client.h": "c",
         "config.h": "c",
         "funcions.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "cstdint": "c",
+        "ssd1306.h": "c"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

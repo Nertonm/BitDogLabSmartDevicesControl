@@ -162,23 +162,8 @@ void send_http_put_request(void) {
     "  ]"
     "}";
     add_header(client, "Content-Type", "application/json");
-    // Adiciona o cabeçalho Content-Type
-    // if (add_header(client, "Content-Type", "application/json") != 0) {
-    //     printf("Erro ao adicionar cabeçalho\n");
-    //     free_http_client(client);
-    //     return;
-    // }
-
     printf("Corpo da requisição: %s\n", json_body);
     add_post(client, json_body);
-    // Adiciona o corpo da requisição
-    // if (add_post(client, json_body) != 0) {
-    //     printf("Erro ao adicionar corpo da requisição\n");
-    //     free_http_client(client);
-    //     return;
-    // }
-
-    // Realiza a requisição PUT (usando HTTPMethod.PUT para clareza)
     http_response_t response = http_request(3, client);
 
     // Verifica a resposta do servidor
