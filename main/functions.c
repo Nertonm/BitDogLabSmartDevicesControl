@@ -142,25 +142,33 @@ bool verify_connection_wifi(){
 // Função para enviar uma requisição HTTP PUT
 
 // Função para enviar uma requisição HTTP PUT
-void send_http_put_request(void) {
-    char url[256];  // Tamanho adequado para a URL
-    snprintf(url, sizeof(url), "http://%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, HTTP_RESOURCE);
+void send_http_toggle(bool is_on) {
+    char url[256];  // Tamanho para a URL
+    snprintf(url, sizeof(url), "http://%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, HTTP_POWER);
     printf("URL: %s\n", url);
-
     http_client_t *client = new_http_client(url);
     if (!client) {
         printf("Erro ao criar o cliente HTTP\n");
         return;
     }
-
     const char *json_body = 
-    "{"
-    "  \"power\": true,"
-    "  \"toggles\": ["
-    "    { \"name\": \"White Lamp\", \"toggle\": true },"
-    "    { \"name\": \"Black Lamp\", \"toggle\": false }"
-    "  ]"
-    "}";
+        "{"
+        "  \"power\": true,"
+        "  \"toggles\": ["
+        "    { \"name\": \"White Lamp\", \"toggle\": true },"
+        "    { \"name\": \"Black Lamp\", \"toggle\": false }"
+        "  ]"
+        "}";
+    if (is_on == true){
+        json_body = 
+        "{"
+        "  \"power\": false,"
+        "  \"toggles\": ["
+        "    { \"name\": \"White Lamp\", \"toggle\": true },"
+        "    { \"name\": \"Black Lamp\", \"toggle\": false }"
+        "  ]"
+        "}";
+    }
     add_header(client, "Content-Type", "application/json");
     printf("Corpo da requisição: %s\n", json_body);
     add_post(client, json_body);
@@ -175,12 +183,13 @@ void send_http_put_request(void) {
 
     // Libera os recursos alocados para o cliente HTTP
     free_http_client(client);
+    return;
 }
 
 void turn_on_led(){
     // Criar uma string que contém a URL completa
     char url[256];  // Tamanho adequado para a URL
-    snprintf(url, sizeof(url), "%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, HTTP_RESOURCE);
+    snprintf(url, sizeof(url), "%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, HTTP_POWER);
     printf("URL: %s\n", url);
     http_client_t *client = new_http_client(url);
      const char *json_body = 
@@ -210,8 +219,6 @@ void turn_on_led(){
     // Libera os recursos alocados para o cliente HTTP
     free_http_client(client);
 }
-
-
 
 
 
