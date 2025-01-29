@@ -1,7 +1,3 @@
-//
-// Created by Kevin Rodrigues on 20/10/2023.
-//
-
 #include "pico_http_client/pico_http_client.h"
 #include "lwip/socket_impl.c"
 
@@ -15,8 +11,6 @@ int handle_socket(http_client_t *http_client, url_t *url, void *data, int data_s
     int tcp_state = pico_is_tcp_connected(tcp_client);
     for (; tcp_state == 0; tcp_state = pico_is_tcp_connected(tcp_client)) sleep(100);
     if (tcp_state < 0) {
-        // There is an issue with the tcp connection.
-        // Logs has been pushed by the api
         printf("Not connected\n");
         pico_free_tcp_client(tcp_client);
         return 0;
@@ -28,12 +22,9 @@ int handle_socket(http_client_t *http_client, url_t *url, void *data, int data_s
             int readed = pico_tcp_read(tcp_client);
             total_readed += readed;
             if (readed == -1) {
-                // error happened during the read.
-                // we must quit
                 total_readed = 0;
                 break;
             } else if (readed == 0) {
-                // seems socket has been disconnected
                 break;
             }
         }

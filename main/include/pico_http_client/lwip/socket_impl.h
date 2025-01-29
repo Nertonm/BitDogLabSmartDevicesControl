@@ -1,7 +1,3 @@
-//
-// Created by Kevin Rodrigues on 18/10/2023.
-//
-
 #ifndef INKYHOMEASSITANT_SOCKET_IMPL_H
 #define INKYHOMEASSITANT_SOCKET_IMPL_H
 
@@ -11,8 +7,6 @@
 #include <lwip/dns.h>
 #include <pico/cyw43_arch.h>
 
-// Pico doesn't have sleep function
-// Let's use the cyw43 sleep who let the background operate peacefully
 #ifndef sleep
 #define sleep(us) cyw43_arch_wait_for_work_until(make_timeout_time_us(us))
 #endif
@@ -39,4 +33,4 @@ int pico_tcp_write(tcp_client_t *tcp_client, void *data, size_t size);
 
 int pico_tcp_read(tcp_client_t *tcp_client);
 
-#endif //INKYHOMEASSITANT_SOCKET_IMPL_H
+#endif 

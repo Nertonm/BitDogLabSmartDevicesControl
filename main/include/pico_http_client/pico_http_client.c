@@ -1,8 +1,31 @@
-//
-// Created by Kevin Rodrigues on 16/10/2023.
-//
-
 #include "pico_http_client/pico_http_client.h"
+
+static const char *number2string(int method) {
+    switch (method)
+    {
+    case 0:
+        return "OPTIONS";
+    case 2:
+        return "POST";
+    case 3:
+        return "PUT";
+    case 4:
+        return "DELETE";
+    case 5:
+        return "TRACE";
+    case 6:
+        return "CONNECT";
+    case 1:
+        return "GET";
+
+    default:
+        return NULL;
+        break;
+    }
+    const char *methods[] = {"OPTIONS", "GET", "POST", "PUT",
+                             "DELETE", "TRACE", "CONNECT", NULL};
+    return methods[method];
+}
 
 static const char *method2string(enum HTTPMethod method) {
     const char *methods[] = {"OPTIONS", "GET", "POST", "PUT",
@@ -114,7 +137,7 @@ void free_http_client(http_client_t *http_client) {
     free(http_client);
 }
 
-http_response_t http_request(enum HTTPMethod method, http_client_t *http_client) {
+http_response_t http_request(int method, http_client_t *http_client) {
     http_response_t response;
     response.code = -1;
     response.body = NULL;
@@ -134,7 +157,8 @@ http_response_t http_request(enum HTTPMethod method, http_client_t *http_client)
                              "%s"
                              "Connection: close\r\n"
                              "%s\r\n",
-                             method2string(method),
+                             //method2string(method),
+                            "PUT",
                              url.path,
                              url.query,
                              url.domain,

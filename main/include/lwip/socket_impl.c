@@ -1,7 +1,3 @@
-//
-// Created by Kevin Rodrigues on 17/10/2023.
-//
-
 #include <lwip/init.h>
 #include <pico/time.h>
 #include "pico_http_client/lwip/socket_impl.h"
@@ -76,8 +72,6 @@ err_t on_received(void *arg, struct tcp_pcb *tpcb, struct pbuf *pbuf, err_t err)
             cyw43_arch_lwip_end();
             return ERR_ABRT;
         }
-        // Already pending data in buffer
-        // Need to concat new data with the old one
         if (tcp_client->rx_buffer) {
             memcpy(buffer, tcp_client->rx_buffer, tcp_client->rx_buffer_size);
             free(tcp_client->rx_buffer);
@@ -115,7 +109,6 @@ tcp_client_t *pico_new_tcp_client() {
 
 void pico_free_tcp_client(tcp_client_t *tcp_client) {
     cyw43_arch_lwip_begin();
-    // do not free data since the pointer has been forwarded to the caller
     if (tcp_client->pcb) { tcp_abort(tcp_client->pcb); }
     free(tcp_client->rx_buffer);
     free(tcp_client);
@@ -127,8 +120,6 @@ int pico_tcp_connect(tcp_client_t *tcp_client, const char *host, const char *por
 
     dns_result_t dns_result;
     memset(&dns_result, 0, sizeof(dns_result_t));
-    // We need to block until dns resolution.
-    // Callback will fill the dns_result.
     if (dns_gethostbyname(host, &dns_result.remote_addr, on_dns_found, &dns_result) == ERR_INPROGRESS) {
         dns_result.available = 0;
         for (;;) {
@@ -165,8 +156,8 @@ int pico_tcp_connect(tcp_client_t *tcp_client, const char *host, const char *por
 
 int pico_is_tcp_connected(tcp_client_t *tcp_client) {
     int ret = 0;
-    if (tcp_client->rx_buffer) return 1;    // we want to caller to read the data even if the socket is closed
-    if (tcp_client->pcb == NULL) return -1; // pcb has been released by lwip
+    if (tcp_client->rx_buffer) return 1;    
+    if (tcp_client->pcb == NULL) return -1; 
     cyw43_arch_lwip_begin();
     switch (tcp_client->pcb->state) {
         case ESTABLISHED:
@@ -180,7 +171,7 @@ int pico_is_tcp_connected(tcp_client_t *tcp_client) {
         case CLOSING:
         case CLOSE_WAIT:
             ret = tcp_client->rx_buffer == NULL ? -1
-                                                : 1; // force caller to read the buffer even if the socket is closed
+                                                : 1; 
             break;
         default:
             ret = 1;
@@ -221,11 +212,9 @@ int pico_tcp_write(tcp_client_t *tcp_client, void *data, size_t size) {
 
 int pico_tcp_read(tcp_client_t *tcp_client) {
     cyw43_arch_lwip_begin();
-    // we must do that protected by cyw43 mutex
     int readed = 0;
     if (tcp_client->rx_buffer != NULL) {
         if (tcp_client->data) {
-            // data already read we have to concat it
             char *tmp = (char *) realloc(tcp_client->data, tcp_client->data_size + tcp_client->rx_buffer_size);
             if (tmp == NULL) {
                 tcp_abort(tcp_client->pcb);
@@ -240,7 +229,6 @@ int pico_tcp_read(tcp_client_t *tcp_client) {
             tcp_client->data = tmp;
             tcp_client->data_size += tcp_client->rx_buffer_size;
         } else {
-            // swap between internal buffer and external buffer available for user
             tcp_client->data = tcp_client->rx_buffer;
             tcp_client->data_size = tcp_client->rx_buffer_size;
         }

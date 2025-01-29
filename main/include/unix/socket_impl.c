@@ -1,7 +1,3 @@
-//
-// Created by Kevin Rodrigues on 17/10/2023.
-//
-
 #include <stdio.h>
 #include <netdb.h>
 #include <stdlib.h>

@@ -1,7 +1,3 @@
-//
-// Created by Kevin Rodrigues on 18/10/2023.
-//
-
 #ifndef INKYHOMEASSITANT_SOCKET_IMPL_H
 #define INKYHOMEASSITANT_SOCKET_IMPL_H
 
@@ -32,4 +28,4 @@ int pico_tcp_write(tcp_client_t *tcp_client, void *data, size_t size);
 
 int pico_tcp_read(tcp_client_t *tcp_client);
 
-#endif //INKYHOMEASSITANT_SOCKET_IMPL_H
+#endif 
