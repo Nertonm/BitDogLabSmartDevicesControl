@@ -114,10 +114,10 @@ bool watch_buttons(int BUTTON_PIN){
     return false;
 }
 
-void send_colors_toggle(int* count) {
+void send_colors_toggle(int* count, Color* current_color) {
     // Tamanho para a URL
     char url[256];  
-    snprintf(url, sizeof(url), "http://%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, "/tset_colour");
+    snprintf(url, sizeof(url), "http://%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, "/set_colour");
     printf("URL: %s\n", url);
     http_client_t *client = new_http_client(url);
     if (!client) {
@@ -140,15 +140,18 @@ void send_colors_toggle(int* count) {
     printf("Corpo da requisição: %s\n", json_body);
     add_post(client, json_body);
     http_response_t response = http_request(3, client);
-
     // Verifica a resposta do servidor
     if (response.code >= 200 && response.code < 300) 
         printf("Requisição PUT bem-sucedida! Código de status: %d\n", response.code);
-    else 
+    else {
         printf("Erro na requisição PUT. Código de status: %d\n", response.code);
-
+        *count--;
+        if (*count == 0)
+            *count++;
+    }
     // Libera os recursos alocados para o cliente HTTP
     free_http_client(client);
+    *current_color = COLORS[*count];
     if ((*count) > 13 )
         *count = -1;
     (*count)++;

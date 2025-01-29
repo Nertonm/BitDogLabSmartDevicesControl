@@ -6,6 +6,10 @@
 #include "config.h"
 #include "functions.h"
 #include "include/ssd1306.h"
+#include "colors.c"
+#include "hardware/pwm.h"
+
+uint slice_r, slice_g, slice_b;
 
 void start_display(){
   ssd1306_init();
@@ -126,8 +130,20 @@ void set_peripherals(){
   gpio_pull_up(I2C_SCL);
 
   // Configura o LED 
-  gpio_init(LED_PIN);
-  gpio_set_dir(LED_PIN, GPIO_OUT);
+  // gpio_init(LED_RED);
+  // gpio_set_dir(LED_RED, GPIO_OUT);
+  // gpio_init(LED_GREEN);
+  // gpio_set_dir(LED_GREEN, GPIO_OUT);
+  // gpio_init(LED_BLUE);
+  // gpio_set_dir(LED_BLUE, GPIO_OUT);
+    // uint slice_r, slice_g, slice_b;
+    // uint16_t pwm_r = 0xFF00, pwm_g = 0, pwm_b = 0;
+    // uint8_t state = 0;
+
+    gpio_set_function(LED_RED, GPIO_FUNC_PWM);
+    gpio_set_function(LED_GREEN, GPIO_FUNC_PWM);
+    gpio_set_function(LED_BLUE, GPIO_FUNC_PWM);
+
 
   // Configura os botões
   gpio_init(BUTTON1_PIN);
@@ -145,7 +161,33 @@ void set_peripherals(){
   cyw43_arch_enable_sta_mode();
   printf("Conectando ao Wi-Fi...\n");
 }
-void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, int* is_first_time){
+
+void setup_pwm() {
+    gpio_set_function(LED_RED, GPIO_FUNC_PWM);
+    gpio_set_function(LED_GREEN, GPIO_FUNC_PWM);
+    gpio_set_function(LED_BLUE, GPIO_FUNC_PWM);
+
+    slice_r = pwm_gpio_to_slice_num(LED_RED);
+    slice_g = pwm_gpio_to_slice_num(LED_GREEN);
+    slice_b = pwm_gpio_to_slice_num(LED_BLUE);
+
+    pwm_config config = pwm_get_default_config();
+    pwm_config_set_clkdiv(&config, 4.f);
+
+    pwm_init(slice_r, &config, true);
+    pwm_init(slice_g, &config, true);
+    pwm_init(slice_b, &config, true);
+}
+
+
+void set_led_color(Color current_color) {
+    pwm_set_gpio_level(LED_RED, current_color.red * 100);
+    pwm_set_gpio_level(LED_GREEN, current_color.green* 100);
+    pwm_set_gpio_level(LED_BLUE, current_color.blue* 100);
+}
+
+
+void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, bool* is_first_time){
     if(*is_conected == false){
       bool connection = verify_connection_wifi();
       if (connection){
@@ -159,23 +201,24 @@ void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, int*
     }
     if (is_bulb_on == 0)
       *count_color = 0;
-    if (*is_first_time){
-      sleep_ms(300);
-      *is_first_time = !(*is_first_time);
-    }
     return;
 }
+
 
 int main() {
   stdio_init_all();  // Inicializa a saída padrão
   set_peripherals();
   start_display();
-
+  setup_pwm();
   printf("Botões configurados com pull-up nos pinos %d e %d\n", BUTTON1_PIN, BUTTON2_PIN);
   bool is_conected = false;
   bool is_bulb_on = true;
   bool is_first_time = true;
   int count_color = 0;
+  Color current_color = {255,255,255};
+  set_led_color(current_color);
+  Color last_color = {255,255,255};
+  int current_bright = 1;
   sleep_ms(1000);
   
   // Loop principal
@@ -183,14 +226,25 @@ int main() {
       verify_connection(&is_conected, &count_color, is_bulb_on, &is_first_time);
       // Mantem o Wi-Fi ativo
       cyw43_arch_poll();  
-      if (watch_buttons(BUTTON1_PIN))
-        send_toggle(&is_bulb_on);
-      if (watch_buttons(BUTTON2_PIN))
-        if(is_bulb_on)
-          send_colors_toggle(&count_color);
-        else
-          
-  
+      if (is_bulb_on){
+        if ((watch_buttons(BUTTON1_PIN)) && (watch_buttons(BUTTON2_PIN))){
+                  printf("\nSetting color.");
+        }
+        if (watch_buttons(BUTTON1_PIN)){
+          send_toggle(&is_bulb_on);
+          printf("\nToggle.");
+          current_color.red = 255;
+          current_color.green = 255;
+          current_color.blue = 255; 
+          count_color = 0;
+          }
+        if (watch_buttons(BUTTON2_PIN))
+          send_colors_toggle(&count_color, &current_color);   
+      }
+      if (!(last_color.blue == current_color.blue && last_color.green == current_color.green && last_color.red == current_color.red)){
+        set_led_color(current_color);
+        printf("\nSetting color.");
+      }
   }
   // Desliga Wi-Fi 
   cyw43_arch_deinit(); 
