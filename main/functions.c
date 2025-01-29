@@ -1,11 +1,13 @@
-#include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
-#include "lwip/tcp.h"
 #include <string.h>
 #include <stdio.h>
 #include "functions.h"
 #include "config.h"
+#include "include/ssd1306.h"
+#include "lwip/tcp.h"
+#include "pico/cyw43_arch.h"
 #include "pico_http_client/pico_http_client.h"
+#include "pico_http_client/pico_http_client.c"
 #include "pico_http_client/socket.c"
 
 #define LED_PIN 12
@@ -217,6 +219,21 @@ void turn_on_led(){
     // Libera os recursos alocados para o cliente HTTP
     free_http_client(client);
 }
+
+bool watch_buttons(int BUTTON_PIN){
+    if (gpio_get(BUTTON_PIN) == 0) {
+        // send_http_toggle(is_bulb_on);
+        // is_bulb_on = !is_bulb_on;
+        printf("Botão %i pressionado. Estado da lâmpada: \n", BUTTON_PIN);
+        while (gpio_get(BUTTON_PIN) == 0)
+        {
+            sleep_ms(50);
+        }
+        return true;
+    }
+    return false;
+}
+
 
 
 
