@@ -145,17 +145,23 @@ void set_peripherals(){
   cyw43_arch_enable_sta_mode();
   printf("Conectando ao Wi-Fi...\n");
 }
-void verify_connection(bool is_conected){
-    while(is_conected == false){
+void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, int* is_first_time){
+    if(*is_conected == false){
       bool connection = verify_connection_wifi();
       if (connection){
           printf("Wi-Fi conectado!\n");
-          is_conected = true;
+          *is_conected = true;
       }
       else{
-          printf("Erro ao conectar ao Wi-Fi\n");
+          printf("Erro ao conectar ao Wi-Fi...\n");
           sleep_ms(1000);
       }
+    }
+    if (is_bulb_on == 0)
+      *count_color = 0;
+    if (*is_first_time){
+      sleep_ms(300);
+      *is_first_time = !(*is_first_time);
     }
     return;
 }
@@ -168,15 +174,25 @@ int main() {
   printf("Botões configurados com pull-up nos pinos %d e %d\n", BUTTON1_PIN, BUTTON2_PIN);
   bool is_conected = false;
   bool is_bulb_on = true;
-
+  bool is_first_time = true;
+  int count_color = 0;
+  sleep_ms(1000);
+  
   // Loop principal
   while (true) {
-      verify_connection(is_conected);
-      cyw43_arch_poll();  // Necessário para manter o Wi-Fi ativo
+      verify_connection(&is_conected, &count_color, is_bulb_on, &is_first_time);
+      // Mantem o Wi-Fi ativo
+      cyw43_arch_poll();  
       if (watch_buttons(BUTTON1_PIN))
-          turn_on_led();
-
+        send_toggle(&is_bulb_on);
+      if (watch_buttons(BUTTON2_PIN))
+        if(is_bulb_on)
+          send_colors_toggle(&count_color);
+        else
+          
+  
   }
-  cyw43_arch_deinit();  // Desliga o Wi-Fi (não será chamado, pois o loop é infinito)
+  // Desliga Wi-Fi 
+  cyw43_arch_deinit(); 
   return 0;
 }
