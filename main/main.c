@@ -220,7 +220,6 @@ int main() {
   Color last_color = {255,255,255};
   int current_bright = 1;
   sleep_ms(1000);
-  
   // Loop principal
   while (true) {
       verify_connection(&is_conected, &count_color, is_bulb_on, &is_first_time);
@@ -232,16 +231,12 @@ int main() {
         }
         if (watch_buttons(BUTTON1_PIN)){
           send_toggle(&is_bulb_on);
-          printf("\nToggle.");
-          current_color.red = 255;
-          current_color.green = 255;
-          current_color.blue = 255; 
-          count_color = 0;
-          }
+        }
         if (watch_buttons(BUTTON2_PIN))
           send_colors_toggle(&count_color, &current_color);   
       }
       if (!(last_color.blue == current_color.blue && last_color.green == current_color.green && last_color.red == current_color.red)){
+        last_color = current_color;
         set_led_color(current_color);
         printf("\nSetting color.");
       }
