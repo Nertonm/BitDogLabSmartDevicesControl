@@ -199,8 +199,8 @@ void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, bool
           sleep_ms(1000);
       }
     }
-    if (is_bulb_on == 0)
-      *count_color = 0;
+    // if (is_bulb_on == 0)
+    //   *count_color = 0;
     return;
 }
 
@@ -226,15 +226,16 @@ int main() {
       // Mantem o Wi-Fi ativo
       cyw43_arch_poll();  
       if (is_bulb_on){
-        if ((watch_buttons(BUTTON1_PIN)) && (watch_buttons(BUTTON2_PIN))){
-                  printf("\nSetting color.");
-        }
         if (watch_buttons(BUTTON1_PIN)){
-          send_toggle(&is_bulb_on);
+          send_turn(&count_color);
         }
         if (watch_buttons(BUTTON2_PIN))
-          send_colors_toggle(&count_color, &current_color);   
+          send_colors_toggle(&count_color, &current_color);
+        if ((watch_buttons(BUTTON1_PIN)) && (watch_buttons(BUTTON2_PIN))){
+          printf("\nSetting color.");
+        }   
       }
+
       if (!(last_color.blue == current_color.blue && last_color.green == current_color.green && last_color.red == current_color.red)){
         last_color = current_color;
         set_led_color(current_color);

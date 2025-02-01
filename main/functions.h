@@ -11,4 +11,5 @@ void turn_on_led();
 void send_toggle(bool*);
 void send_colors_toggle(int* count, Color* current_color);
 bool watch_buttons(int BUTTON_PIN);
+void send_turn(int* count);
 #endif // FUNCTIONS_H

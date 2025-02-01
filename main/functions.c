@@ -93,10 +93,9 @@ void send_toggle(bool* is_on) {
         printf("Requisição PUT bem-sucedida! Código de status: %d\n", response.code);
     else 
         printf("Erro na requisição PUT. Código de status: %d\n", response.code);
-        
     // Libera os recursos alocados para o cliente HTTP
-    free_http_client(client);
     *is_on = !(*is_on);
+    free_http_client(client);
     return;
 }
 
@@ -104,10 +103,10 @@ bool watch_buttons(int BUTTON_PIN){
     if (gpio_get(BUTTON_PIN) == 0) {
         // send_http_toggle(is_bulb_on);
         // is_bulb_on = !is_bulb_on;
-        printf("Botão %i pressionado. Estado da lâmpada: \n", BUTTON_PIN);
+        printf("Botão %i pressionado.\n", BUTTON_PIN);
         while (gpio_get(BUTTON_PIN) == 0)
         {
-            sleep_ms(50);
+            sleep_ms(20);
         }
         return true;
 
@@ -159,6 +158,49 @@ void send_colors_toggle(int* count, Color* current_color) {
     return;
 }
 
-
+void send_turn(int* count) {
+    // Tamanho para a URL
+    if ((*count) > 0)
+        (*count) = 0;
+    else if ((*count) == 0)
+    {   
+        (*count) = 1;
+    }
+    
+    char url[256];  
+    snprintf(url, sizeof(url), "http://%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, "/set_power");
+    printf("URL: %s\n", url);
+    http_client_t *client = new_http_client(url);
+    if (!client) {
+        printf("Erro ao criar o cliente HTTP\n");
+        return;
+    }
+    char json_body[512];
+    snprintf(json_body, sizeof(json_body),
+        "{"
+        "  \"power\": %s,"
+        "  \"toggles\": ["
+        "    { \"name\": \"White Lamp\", \"toggle\": true },"
+        "    { \"name\": \"Black Lamp\", \"toggle\": false }"
+        "  ]"
+        "}",
+        *count ? "true" : "false");
+    add_header(client, "Content-Type", "application/json");
+    printf("Corpo da requisição: %s\n", json_body);
+    add_post(client, json_body);
+    http_response_t response = http_request(3, client);
+    // Verifica a resposta do servidor
+    if (response.code >= 200 && response.code < 300) 
+        printf("Requisição PUT bem-sucedida! Código de status: %d\n", response.code);
+    else {
+        printf("Erro na requisição PUT. Código de status: %d\n", response.code);
+        *count--;
+        if (*count == 0)
+            *count++;
+    }
+    // Libera os recursos alocados para o cliente HTTP
+    free_http_client(client);
+    return;
+}
 
 
