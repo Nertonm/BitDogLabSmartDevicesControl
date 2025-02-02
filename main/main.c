@@ -8,6 +8,8 @@
 #include "include/ssd1306.h"
 #include "colors.c"
 #include "hardware/pwm.h"
+#include "hardware/adc.h"
+
 
 uint slice_r, slice_g, slice_b;
 

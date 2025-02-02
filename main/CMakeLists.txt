@@ -49,6 +49,7 @@ target_link_libraries(main
         pico_stdlib
         hardware_i2c
         hardware_pwm
+        hardware_adc
         )
 
 # Add the standard include files to the build
