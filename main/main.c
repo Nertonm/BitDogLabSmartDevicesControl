@@ -154,6 +154,14 @@ void set_peripherals(){
   gpio_set_dir(BUTTON2_PIN, GPIO_IN);
   gpio_pull_up(BUTTON2_PIN);
 
+  gpio_init(BUTTONSTICK_PIN);
+  gpio_set_dir(BUTTONSTICK_PIN, GPIO_IN);
+  gpio_pull_up(BUTTONSTICK_PIN);
+
+  // Configura o JoyStick
+  adc_gpio_init(26);
+  adc_gpio_init(27);
+
   // Inicializa o Wi-Fi
   if (cyw43_arch_init()) {
     printf("Erro ao inicializar o Wi-Fi\n");
@@ -204,9 +212,34 @@ void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, bool
     return;
 }
 
+void stick(){
+        adc_select_input(0);
+        printf("\nValor X: %d", adc_read());
+        uint adc_x_raw = adc_read();
+        adc_select_input(1);
+        printf("\nValor Y: %d", adc_read());
+        uint adc_y_raw = adc_read();
+
+        const uint bar_width = 40; 
+        const uint adc_max = (1 << 12) - 1;
+        
+
+        uint bar_x_pos = adc_x_raw * bar_width / adc_max;
+        uint bar_y_pos = adc_y_raw * bar_width / adc_max;
+        printf("\nX: [");
+        for (uint i = 0; i < bar_width; ++i)
+            putchar(i == bar_x_pos ? 'o' : ' ');
+        printf("]  \nY: [");
+
+        for (uint i = 0; i < bar_width; ++i)
+            putchar(i == bar_y_pos ? 'o' : ' ');
+        printf("]");
+        sleep_ms(500);
+}
 
 int main() {
   stdio_init_all();  // Inicializa a saída padrão
+  adc_init();
   set_peripherals();
   start_display();
   setup_pwm();
