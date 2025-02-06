@@ -240,8 +240,9 @@ void stick(){
 }
 
 int main() {
-  stdio_init_all();  // Inicializa a saída padrão
   adc_init();
+  // Inicializa a saída padrão
+  stdio_init_all();  
   set_peripherals();
   start_display();
   setup_pwm();
@@ -275,6 +276,26 @@ int main() {
         last_color = current_color;
         set_led_color(current_color);
         printf("\nSetting color.");
+      }
+      else{
+        if ((watch_buttons(BUTTON1_PIN)) && (watch_buttons(BUTTON2_PIN))){
+          printf("\nSetting color.");
+          if (watch_buttons(BUTTON1_PIN))
+          {
+            adc_select_input(0);
+            uint adc_x_raw = adc_read();
+            Color color = {adc_x_raw/0.06375, current_color.green, current_color.blue};
+          }
+          if (watch_buttons(BUTTON2_PIN))
+          {
+            adc_select_input(1);
+            uint adc_y_raw = adc_read();
+          }
+          if (watch_buttons(BUTTONSTICK_PIN))
+          {
+            
+          }   
+
       }
   }
   // Desliga Wi-Fi 
