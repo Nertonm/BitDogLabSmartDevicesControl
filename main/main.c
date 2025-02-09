@@ -202,12 +202,14 @@ void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, bool
 }
 
 int main() {
+  //Setup
   adc_init();
   stdio_init_all();  
   set_peripherals();
   start_display();
   setup_pwm();
 
+  //Initial Variables
   bool is_conected = false;
   bool is_bulb_on = true;
   bool is_first_time = true;
@@ -223,7 +225,10 @@ int main() {
 
     // Mantem o Wi-Fi ativo
     cyw43_arch_poll();  
+    
+    // Controle quando a Lampada está Ligada
     if (is_bulb_on){
+      // Desligar a lampada
       if (watch_buttons(BUTTON1_PIN)){
         printf("\nBotão 1 pressionado.");
         is_bulb_on = false;
@@ -233,17 +238,21 @@ int main() {
         send_colors_toggle(&count_color, &current_color);
         count_color--;
       }
+      // Trocar cor
       if (watch_buttons(BUTTON2_PIN)){
         send_colors_toggle(&count_color, &current_color);
         printf("%i, %i, %i", current_color.red, current_color.green, current_color.blue);
       }
     }
+    // Mudar a cor da placa para a cor da lampada
     if (!(last_color.blue == current_color.blue && last_color.green == current_color.green && last_color.red == current_color.red)){
       last_color = current_color;
       set_led_color(current_color);
       printf("\nChanging  Color on board.");
     }
+    // Controle de estado quando a lampada está desligada
     if(!is_bulb_on){
+      // Selecionar cor customizada
       if ((watch_buttons(BUTTONSTICK_PIN))){
         bool select = true;
         printf("\nSetting color.");
@@ -294,6 +303,7 @@ int main() {
           }
         }
       }
+      // Ligar Lampada
       if (watch_buttons(BUTTON1_PIN)){
         send_turn(&count_color);
         is_bulb_on = true;
