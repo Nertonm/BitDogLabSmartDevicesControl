@@ -58,7 +58,7 @@ void send_colors_toggle(int* count, Color* current_color) {
         return;
     }
     char json_body[512];
-    if(count == -1){
+    if((*count) == -1){
         snprintf(json_body, sizeof(json_body),
         "{"
         "  \"red\": %d,"
