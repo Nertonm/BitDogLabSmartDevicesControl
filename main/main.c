@@ -10,7 +10,6 @@
 #include "hardware/pwm.h"
 #include "hardware/adc.h"
 
-
 uint slice_r, slice_g, slice_b;
 
 void start_display(){
@@ -123,6 +122,7 @@ void start_display(){
   };
   ssd1306_draw_bitmap(&ssd_bm, bitmap_128x64);
 }
+
 void set_peripherals(){
   // Configura o display OLED
   i2c_init(i2c1, ssd1306_i2c_clock * 4000);
@@ -209,39 +209,11 @@ void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, bool
           sleep_ms(1000);
       }
     }
-    // if (is_bulb_on == 0)
-    //   *count_color = 0;
     return;
-}
-
-void stick(){
-        adc_select_input(0);
-        printf("\nValor X: %d", adc_read());
-        uint adc_x_raw = adc_read();
-        adc_select_input(1);
-        printf("\nValor Y: %d", adc_read());
-        uint adc_y_raw = adc_read();
-
-        const uint bar_width = 40; 
-        const uint adc_max = (1 << 12) - 1;
-        
-
-        uint bar_x_pos = adc_x_raw * bar_width / adc_max;
-        uint bar_y_pos = adc_y_raw * bar_width / adc_max;
-        printf("\nX: [");
-        for (uint i = 0; i < bar_width; ++i)
-            putchar(i == bar_x_pos ? 'o' : ' ');
-        printf("]  \nY: [");
-
-        for (uint i = 0; i < bar_width; ++i)
-            putchar(i == bar_y_pos ? 'o' : ' ');
-        printf("]");
-        sleep_ms(500);
 }
 
 int main() {
   adc_init();
-  // Inicializa a saída padrão
   stdio_init_all();  
   set_peripherals();
   start_display();
@@ -255,50 +227,62 @@ int main() {
   set_led_color(current_color);
   Color last_color = {255,255,255};
   int current_bright = 1;
-  sleep_ms(1000);
+
   // Loop principal
   while (true) {
-      verify_connection(&is_conected, &count_color, is_bulb_on, &is_first_time);
-      // Mantem o Wi-Fi ativo
-      cyw43_arch_poll();  
-      if (is_bulb_on){
-        if (watch_buttons(BUTTON1_PIN)){
-          send_turn(&count_color);
-        }
-        if (watch_buttons(BUTTON2_PIN))
-          send_colors_toggle(&count_color, &current_color);
-        if ((watch_buttons(BUTTON1_PIN)) && (watch_buttons(BUTTON2_PIN))){
-          printf("\nSetting color.");
-        }   
+    verify_connection(&is_conected, &count_color, is_bulb_on, &is_first_time);
+    // Mantem o Wi-Fi ativo
+    cyw43_arch_poll();  
+    if (is_bulb_on){
+      if (watch_buttons(BUTTON1_PIN)){
+        printf("\nBotão 1 pressionado.");
+        send_turn(&count_color);
+        is_bulb_on = false;
+        set_led_color((Color){0,0,0});
+        current_color.blue = 255;
+        current_color.red = 255;
+        current_color.green = 255;
+        count_color = 0;
+        send_colors_toggle(&count_color, &current_color);
       }
-
-      if (!(last_color.blue == current_color.blue && last_color.green == current_color.green && last_color.red == current_color.red)){
-        last_color = current_color;
-        set_led_color(current_color);
+      if (watch_buttons(BUTTON2_PIN)){
+        send_colors_toggle(&count_color, &current_color);
+        printf("%i, %i, %i", current_color.red, current_color.green, current_color.blue);
+      }
+    }
+    if (!(last_color.blue == current_color.blue && last_color.green == current_color.green && last_color.red == current_color.red)){
+      last_color = current_color;
+      set_led_color(current_color);
+      printf("\nChanging  Color on board.");
+    }
+    if(!is_bulb_on){
+      if ((watch_buttons(BUTTONSTICK_PIN))){
+        bool select = true;
         printf("\nSetting color.");
-      }
-      else{
-        if ((watch_buttons(BUTTON1_PIN)) && (watch_buttons(BUTTON2_PIN))){
-          printf("\nSetting color.");
-          if (watch_buttons(BUTTON1_PIN))
-          {
-            adc_select_input(0);
-            uint adc_x_raw = adc_read();
-            Color color = {adc_x_raw/0.06375, current_color.green, current_color.blue};
-          }
-          if (watch_buttons(BUTTON2_PIN))
-          {
+        while (select){
+          if (watch_buttons(BUTTON1_PIN)){
             adc_select_input(1);
             uint adc_y_raw = adc_read();
+            printf("%d",adc_y_raw);
+            Color color = {adc_y_raw/0.06375, current_color.green, current_color.blue};
+            set_led_color(color);
+            send_colors_toggle(&count_color, &color);
           }
-          if (watch_buttons(BUTTONSTICK_PIN))
-          {
-            
-          }   
-
+          if (watch_buttons(BUTTON2_PIN)){
+            select = false;
+          }
+        }
       }
-  }
-  // Desliga Wi-Fi 
+      if (watch_buttons(BUTTON1_PIN)){
+        count_color = 0;
+        send_turn(&count_color);
+        is_bulb_on = true;
+        current_color = (Color){255,255,255};
+        send_turn(&count_color);
+        set_led_color(current_color);
+      }
+      }
+    }
   cyw43_arch_deinit(); 
   return 0;
 }
