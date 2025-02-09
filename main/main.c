@@ -258,6 +258,7 @@ int main() {
         printf("\nSetting color.");
         Color color = {0,0,0};
         int color_choice = 0;
+        
         while (select){
           while(color_choice == 0){
             if (watch_buttons(BUTTON1_PIN)){
