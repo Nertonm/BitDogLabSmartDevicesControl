@@ -10,6 +10,7 @@
 #include "pico_http_client/pico_http_client.c"
 #include "pico_http_client/socket.c"
 #include "colors.h"
+#include <math.h> 
 
 // Buffer para resposta HTTP
 char http_response[1024];
@@ -17,37 +18,6 @@ char http_response[1024];
 // Estado dos botões (inicialmente sem mensagens)
 char button1_message[50] = "Nenhum evento no botão 1";
 char button2_message[50] = "Nenhum evento no botão 2";
-
-// Função para monitorar o estado dos botões
-void monitor_buttons() {
-    static bool button1_last_state = false;
-    static bool button2_last_state = false;
-
-    bool button1_state = !gpio_get(BUTTON1_PIN); // Botão pressionado = LOW
-    bool button2_state = !gpio_get(BUTTON2_PIN);
-
-    if (button1_state != button1_last_state) {
-        button1_last_state = button1_state;
-        if (button1_state) {
-            snprintf(button1_message, sizeof(button1_message), "Botão 1 foi pressionado!");
-            printf("Botão 1 pressionado\n");
-        } else {
-            snprintf(button1_message, sizeof(button1_message), "Botão 1 foi solto!");
-            printf("Botão 1 solto\n");
-        }
-    }
-
-    if (button2_state != button2_last_state) {
-        button2_last_state = button2_state;
-        if (button2_state) {
-            snprintf(button2_message, sizeof(button2_message), "Botão 2 foi pressionado!");
-            printf("Botão 2 pressionado\n");
-        } else {
-            snprintf(button2_message, sizeof(button2_message), "Botão 2 foi solto!");
-            printf("Botão 2 solto\n");
-        }
-    }
-}
 
 
 bool verify_connection_wifi(){
@@ -61,43 +31,6 @@ bool verify_connection_wifi(){
         printf("Endereço IP %d.%d.%d.%d\n", ip_address[0], ip_address[1], ip_address[2], ip_address[3]);
     }
 } 
-
-// Função para enviar uma requisição HTTP PUT
-void send_toggle(bool* is_on) {
-    // Tamanho para a URL
-    char url[256];  
-    snprintf(url, sizeof(url), "http://%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, HTTP_POWER);
-    printf("URL: %s\n", url);
-    http_client_t *client = new_http_client(url);
-    if (!client) {
-        printf("Erro ao criar o cliente HTTP\n");
-        return;
-    }
-    char json_body[512];
-    snprintf(json_body, sizeof(json_body),
-        "{"
-        "  \"power\": %s,"
-        "  \"toggles\": ["
-        "    { \"name\": \"White Lamp\", \"toggle\": true },"
-        "    { \"name\": \"Black Lamp\", \"toggle\": false }"
-        "  ]"
-        "}",
-        *is_on ? "true" : "false");
-    add_header(client, "Content-Type", "application/json");
-    printf("Corpo da requisição: %s\n", json_body);
-    add_post(client, json_body);
-    http_response_t response = http_request(3, client);
-
-    // Verifica a resposta do servidor
-    if (response.code >= 200 && response.code < 300) 
-        printf("Requisição PUT bem-sucedida! Código de status: %d\n", response.code);
-    else 
-        printf("Erro na requisição PUT. Código de status: %d\n", response.code);
-    // Libera os recursos alocados para o cliente HTTP
-    *is_on = !(*is_on);
-    free_http_client(client);
-    return;
-}
 
 bool watch_buttons(int BUTTON_PIN){
     if (gpio_get(BUTTON_PIN) == 0) {
@@ -125,7 +58,8 @@ void send_colors_toggle(int* count, Color* current_color) {
         return;
     }
     char json_body[512];
-    snprintf(json_body, sizeof(json_body),
+    if((*count) == -1){
+        snprintf(json_body, sizeof(json_body),
         "{"
         "  \"red\": %d,"
         "  \"green\": %d,"
@@ -134,8 +68,21 @@ void send_colors_toggle(int* count, Color* current_color) {
         "    { \"name\": \"White Lamp\", \"toggle\": true, \"bright_mul\": 1.0 },"
         "    { \"name\": \"bulb2\", \"toggle\": false, \"bright_mul\": 1.0 }"
         "  ]"
-        "}", COLORS[*count].red, COLORS[*count].green, COLORS[*count].blue
+        "}", (*current_color).red, (*current_color).green, (*current_color).blue
         );
+    } else {
+        snprintf(json_body, sizeof(json_body),
+            "{"
+            "  \"red\": %d,"
+            "  \"green\": %d,"
+            "  \"blue\": %d,"
+            "  \"toggles\": ["
+            "    { \"name\": \"White Lamp\", \"toggle\": true, \"bright_mul\": 1.0 },"
+            "    { \"name\": \"bulb2\", \"toggle\": false, \"bright_mul\": 1.0 }"
+            "  ]"
+            "}", COLORS[*count].red, COLORS[*count].green, COLORS[*count].blue
+            );
+    }    
     add_header(client, "Content-Type", "application/json");
     printf("Corpo da requisição: %s\n", json_body);
     add_post(client, json_body);
@@ -158,15 +105,8 @@ void send_colors_toggle(int* count, Color* current_color) {
     return;
 }
 
-void send_turn(int* count) {
-    // Tamanho para a URL
-    if ((*count) > 0)
-        (*count) = 0;
-    else if ((*count) == 0)
-    {   
-        (*count) = 1;
-    }
-    
+void send_turn(bool state) {
+    // Tamanho para a URL    
     char url[256];  
     snprintf(url, sizeof(url), "http://%s:%s%s", HTTP_SERVER_IP, HTTP_SERVER_PORT, "/set_power");
     printf("URL: %s\n", url);
@@ -184,7 +124,7 @@ void send_turn(int* count) {
         "    { \"name\": \"Black Lamp\", \"toggle\": false }"
         "  ]"
         "}",
-        *count ? "true" : "false");
+        (state) ? "true" : "false");
     add_header(client, "Content-Type", "application/json");
     printf("Corpo da requisição: %s\n", json_body);
     add_post(client, json_body);
@@ -194,13 +134,12 @@ void send_turn(int* count) {
         printf("Requisição PUT bem-sucedida! Código de status: %d\n", response.code);
     else {
         printf("Erro na requisição PUT. Código de status: %d\n", response.code);
-        *count--;
-        if (*count == 0)
-            *count++;
     }
     // Libera os recursos alocados para o cliente HTTP
     free_http_client(client);
     return;
 }
 
-
+int adc_to_color(int x) {
+    return (int)round((255.0 * (x - 25)) / 4055);
+    }

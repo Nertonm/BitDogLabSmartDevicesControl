@@ -10,7 +10,6 @@
 #include "hardware/pwm.h"
 #include "hardware/adc.h"
 
-
 uint slice_r, slice_g, slice_b;
 
 void start_display(){
@@ -123,6 +122,7 @@ void start_display(){
   };
   ssd1306_draw_bitmap(&ssd_bm, bitmap_128x64);
 }
+
 void set_peripherals(){
   // Configura o display OLED
   i2c_init(i2c1, ssd1306_i2c_clock * 4000);
@@ -131,20 +131,11 @@ void set_peripherals(){
   gpio_pull_up(I2C_SDA);
   gpio_pull_up(I2C_SCL);
 
-  // Configura o LED 
-  // gpio_init(LED_RED);
-  // gpio_set_dir(LED_RED, GPIO_OUT);
-  // gpio_init(LED_GREEN);
-  // gpio_set_dir(LED_GREEN, GPIO_OUT);
-  // gpio_init(LED_BLUE);
-  // gpio_set_dir(LED_BLUE, GPIO_OUT);
-    // uint slice_r, slice_g, slice_b;
-    // uint16_t pwm_r = 0xFF00, pwm_g = 0, pwm_b = 0;
-    // uint8_t state = 0;
 
-    gpio_set_function(LED_RED, GPIO_FUNC_PWM);
-    gpio_set_function(LED_GREEN, GPIO_FUNC_PWM);
-    gpio_set_function(LED_BLUE, GPIO_FUNC_PWM);
+  // Inicializa os LEDS
+  gpio_set_function(LED_RED, GPIO_FUNC_PWM);
+  gpio_set_function(LED_GREEN, GPIO_FUNC_PWM);
+  gpio_set_function(LED_BLUE, GPIO_FUNC_PWM);
 
 
   // Configura os botões
@@ -189,95 +180,140 @@ void setup_pwm() {
     pwm_init(slice_b, &config, true);
 }
 
-
 void set_led_color(Color current_color) {
     pwm_set_gpio_level(LED_RED, current_color.red * 100);
     pwm_set_gpio_level(LED_GREEN, current_color.green* 100);
     pwm_set_gpio_level(LED_BLUE, current_color.blue* 100);
 }
 
-
 void verify_connection(bool *is_conected, int* count_color, int is_bulb_on, bool* is_first_time){
     if(*is_conected == false){
       bool connection = verify_connection_wifi();
       if (connection){
-          printf("Wi-Fi conectado!\n");
-          *is_conected = true;
+        printf("Wi-Fi conectado!\n");
+        *is_conected = true;
       }
       else{
-          printf("Erro ao conectar ao Wi-Fi...\n");
-          sleep_ms(1000);
+        printf("Erro ao conectar ao Wi-Fi...\n");
+        sleep_ms(1000);
       }
     }
-    // if (is_bulb_on == 0)
-    //   *count_color = 0;
     return;
 }
 
-void stick(){
-        adc_select_input(0);
-        printf("\nValor X: %d", adc_read());
-        uint adc_x_raw = adc_read();
-        adc_select_input(1);
-        printf("\nValor Y: %d", adc_read());
-        uint adc_y_raw = adc_read();
-
-        const uint bar_width = 40; 
-        const uint adc_max = (1 << 12) - 1;
-        
-
-        uint bar_x_pos = adc_x_raw * bar_width / adc_max;
-        uint bar_y_pos = adc_y_raw * bar_width / adc_max;
-        printf("\nX: [");
-        for (uint i = 0; i < bar_width; ++i)
-            putchar(i == bar_x_pos ? 'o' : ' ');
-        printf("]  \nY: [");
-
-        for (uint i = 0; i < bar_width; ++i)
-            putchar(i == bar_y_pos ? 'o' : ' ');
-        printf("]");
-        sleep_ms(500);
-}
-
 int main() {
-  stdio_init_all();  // Inicializa a saída padrão
+  //Setup
   adc_init();
+  stdio_init_all();  
   set_peripherals();
   start_display();
   setup_pwm();
-  printf("Botões configurados com pull-up nos pinos %d e %d\n", BUTTON1_PIN, BUTTON2_PIN);
+
+  //Initial Variables
   bool is_conected = false;
   bool is_bulb_on = true;
   bool is_first_time = true;
+  int current_bright = 1;
   int count_color = 0;
   Color current_color = {255,255,255};
-  set_led_color(current_color);
   Color last_color = {255,255,255};
-  int current_bright = 1;
-  sleep_ms(1000);
+  set_led_color(current_color);
+
   // Loop principal
   while (true) {
-      verify_connection(&is_conected, &count_color, is_bulb_on, &is_first_time);
-      // Mantem o Wi-Fi ativo
-      cyw43_arch_poll();  
-      if (is_bulb_on){
-        if (watch_buttons(BUTTON1_PIN)){
-          send_turn(&count_color);
-        }
-        if (watch_buttons(BUTTON2_PIN))
-          send_colors_toggle(&count_color, &current_color);
-        if ((watch_buttons(BUTTON1_PIN)) && (watch_buttons(BUTTON2_PIN))){
-          printf("\nSetting color.");
-        }   
-      }
+    verify_connection(&is_conected, &count_color, is_bulb_on, &is_first_time);
 
-      if (!(last_color.blue == current_color.blue && last_color.green == current_color.green && last_color.red == current_color.red)){
-        last_color = current_color;
-        set_led_color(current_color);
-        printf("\nSetting color.");
+    // Mantem o Wi-Fi ativo
+    cyw43_arch_poll();  
+    
+    // Controle quando a Lampada está Ligada
+    if (is_bulb_on){
+      // Desligar a lampada
+      if (watch_buttons(BUTTON1_PIN)){
+        printf("\nBotão 1 pressionado.");
+        is_bulb_on = false;
+        send_turn(is_bulb_on);
+        set_led_color((Color){0,0,0});
+        count_color = 0;
+        send_colors_toggle(&count_color, &current_color);
+        count_color--;
       }
-  }
-  // Desliga Wi-Fi 
+      // Trocar cor
+      if (watch_buttons(BUTTON2_PIN)){
+        send_colors_toggle(&count_color, &current_color);
+        printf("%i, %i, %i", current_color.red, current_color.green, current_color.blue);
+      }
+    }
+    // Mudar a cor da placa para a cor da lampada
+    if (!(last_color.blue == current_color.blue && last_color.green == current_color.green && last_color.red == current_color.red)){
+      last_color = current_color;
+      set_led_color(current_color);
+      printf("\nChanging  Color on board.");
+    }
+    // Controle de estado quando a lampada está desligada
+    if(!is_bulb_on){
+      // Selecionar cor customizada
+      if ((watch_buttons(BUTTONSTICK_PIN))){
+        bool select = true;
+        printf("\nSetting color.");
+        Color color = {0,0,0};
+        int color_choice = 0;
+        
+        while (select){
+          while(color_choice == 0){
+            if (watch_buttons(BUTTON1_PIN)){
+              printf("Red");
+              adc_select_input(1);
+              uint adc_y_raw = adc_read();
+              printf("%d\n",adc_y_raw);
+              color.red = adc_to_color(adc_y_raw);
+              set_led_color(color);
+              color_choice++;
+            }
+          }
+          while(color_choice == 1){
+            if (watch_buttons(BUTTON1_PIN) && (color_choice == 1)){
+              adc_select_input(1);
+              printf("Green");
+              uint adc_y_raw = adc_read();
+              printf("%d",adc_y_raw);
+              color.green = adc_to_color(adc_y_raw);
+              set_led_color(color);
+              color_choice++;
+            }
+          }
+          while(color_choice == 2){
+            if (watch_buttons(BUTTON1_PIN) && (color_choice == 2)){
+              adc_select_input(1);
+              printf("Blue");
+              uint adc_y_raw = adc_read();
+              printf("%d",adc_y_raw);
+              color.blue = adc_to_color(adc_y_raw);
+              set_led_color(color);
+              color_choice++;
+            }
+          }
+          if (watch_buttons(BUTTON2_PIN)){
+            select = false;
+            count_color = -1;
+            is_bulb_on = true;
+            send_turn(is_bulb_on);
+            current_color = color;
+            last_color = color;
+            send_colors_toggle(&count_color, &color);
+          }
+        }
+      }
+      // Ligar Lampada
+      if (watch_buttons(BUTTON1_PIN)){
+        send_turn(&count_color);
+        is_bulb_on = true;
+        current_color = (Color){255,255,255};
+        send_turn(is_bulb_on);
+        set_led_color(current_color);
+      }
+      }
+    }
   cyw43_arch_deinit(); 
   return 0;
 }
