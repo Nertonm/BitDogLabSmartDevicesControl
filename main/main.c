@@ -237,6 +237,7 @@ int main() {
         count_color = 0;
         send_colors_toggle(&count_color, &current_color);
         count_color--;
+        last_color = current_color;
       }
       // Trocar cor
       if (watch_buttons(BUTTON2_PIN)){
@@ -258,7 +259,7 @@ int main() {
         printf("\nSetting color.");
         Color color = {0,0,0};
         int color_choice = 0;
-        
+        set_led_color(color);
         while (select){
           while(color_choice == 0){
             if (watch_buttons(BUTTON1_PIN)){
