@@ -2,6 +2,8 @@
 
 Este projeto utiliza um Raspberry Pi Pico W para controlar LEDs RGB e interagir com um servidor via Wi-Fi. Ele responde a eventos de botões físicos para alterar o estado dos LEDs e enviar atualizações ao servidor.
 
+**Vídeo demonstrativo**: [YouTube](https://youtube.com/shorts/wa7R7J-lVVE?si=lX7i7atI7USnhtsM)
+
 ## Requisito de Servidor
 
 Este projeto requer o repositório [TuyaSmartBulbs_API](https://github.com/Nertonm/TuyaSmartBulbs_API) como servidor para funcionar corretamente. Certifique-se de configurar e executar o servidor conforme descrito na documentação do repositório [TuyaSmartBulbs_API](https://github.com/Nertonm/TuyaSmartBulbs_API).
